@@ -25,7 +25,7 @@ class Face(object):
         self.resolution = resolution
 
     @abstractclassmethod
-    def build_face_grid():
+    def build_face_grid(self):
         pass
 
     def generate_faces(self):
