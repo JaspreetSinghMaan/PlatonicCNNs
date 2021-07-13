@@ -8,20 +8,24 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 
-class Icosaheadron(Shape):
-    def __init__(self, num_faces=20, resolution=1):
-        super(Shape, self).__init__(num_faces, resolution)
-        self.resolution = resolution
-        self.faces = self.generate_faces()
-
 SR3 = np.sqrt(3)
 SR2 = np.sqrt(2)
-Phi = 1.61803
+Phi = (1 + np.sqrt(5)) / 2 #1.61803
 phi = Phi - 1
+#octahedron
+a = 1 / (2 * np.sqrt(2))
+b = 1 / 2
+#icosahedron
+c = 1 / 2
+d = 1 / (2 * Phi)
+#dodecahedron
+e = 1 / Phi
+f = 2 - Phi
 
 # https://www.mathsisfun.com/geometry/model-construction-tips.html
 # http://www.maths.surrey.ac.uk/hosted-sites/R.Knott/Fibonacci/phi3DGeom.html#section3
-platonics = {
+# http://paulbourke.net/geometry/platonic/ - used for 3d_coords_dict
+platonics_dict = {
     4: {
         'name': 'Tetrahedron',
         'num_faces': 4,
@@ -38,7 +42,13 @@ platonics = {
         # '3d_coords': torch.tensor([(0, 0, 0), (, , 0), (, , 0), (SR3/2, SR3/2, 0.5)], dtype=torch.float),
         '3d_edge_index': torch.tensor([
             [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3],
-            [1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2]], dtype=torch.long)},
+            [1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2]], dtype=torch.long),
+        '3d_coords_dict': {
+            0: [[1, 1, 1], [-1, 1, -1], [1, -1, -1]],
+            1: [[-1, 1, -1], [-1 - 1, 1], [1 - 1 - 1]],
+            2: [[1, 1, 1], [1, -1 - 1], [-1, -1, 1]],
+            3: [[1, 1, 1], [-1, -1, 1], [-1, 1, -1]]}
+        },
 
     6: {
         'name': 'Cube',
@@ -63,7 +73,15 @@ platonics = {
             dtype=torch.float),
         '3d_edge_index': torch.tensor([
             [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7],
-            [1, 2, 4, 0, 3, 5, 0, 3, 6, 1, 2, 7, 0, 5, 6, 1, 4, 7, 2, 4, 7, 3, 5, 6]], dtype=torch.long)},
+            [1, 2, 4, 0, 3, 5, 0, 3, 6, 1, 2, 7, 0, 5, 6, 1, 4, 7, 2, 4, 7, 3, 5, 6]], dtype=torch.long),
+        '3d_coords_dict': {
+            0:[[-1, -1, -1], [ 1, -1, -1], [ 1, -1,  1], [-1, -1,  1]],
+            1:[[-1, -1, -1], [-1, -1,  1], [-1,  1,  1], [-1,  1, -1]],
+            2:[[-1, -1,  1], [ 1, -1,  1], [ 1,  1,  1], [-1,  1,  1]],
+            3:[[-1,  1, -1], [-1,  1,  1], [ 1,  1,  1], [ 1,  1, -1]],
+            4:[[1, -1, -1], [ 1,  1, -1], [ 1,  1,  1], [ 1, -1,  1]],
+            5:[[-1, -1, -1], [-1,  1, -1], [ 1,  1, -1], [ 1, -1, -1]]},
+        },
 
     8: {
         'name': 'Octahedron',
@@ -84,7 +102,17 @@ platonics = {
         '3d_num_edges': 12,
         '3d_nodes': range(6),
         '3d_coords': torch.tensor([(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)],
-                                  dtype=torch.float)},
+                                  dtype=torch.float),
+        '3d_coords_dict': {
+            0: [[-a, 0, a], [-a, 0, -a], [0, b, 0]],
+            1: [[-a, 0, -a], [a, 0, -a], [0, b, 0]],
+            2: [[a, 0, -a], [a, 0, a], [0, b, 0]],
+            3: [[a, 0, a], [-a, 0, a], [0, b, 0]],
+            4: [[a, 0, -a], [-a, 0, -a], [0, -b, 0]],
+            5: [[-a, 0, -a], [-a, 0, a], [0, -b, 0]],
+            6: [[a, 0, a], [a, 0, -a], [0, -b, 0]],
+            7: [[-a, 0, a], [a, 0, a], [0, -b, 0]]}
+        },
 
     # todo need Dodecahedron 2d stats
     # 12: {
@@ -106,6 +134,19 @@ platonics = {
     #     '2d_edge_index': torch.tensor([
     #         [],
     #         []])},
+
+#  f  0  1   -f  0  1   -e  e  e    0  1  f    e  e  e
+# -f  0  1    f  0  1    e -e  e    0 -1  f   -e -e  e
+#  f  0 -1   -f  0 -1   -e -e -e    0 -1 -f    e -e -e
+# -f  0 -1    f  0 -1    e  e -e    0  1 -f   -e  e -e
+#  0  1 -f    0  1  f    e  e  e    1  f  0    e  e -e
+#  0  1  f    0  1 -f   -e  e -e   -1  f  0   -e  e  e
+#  0 -1 -f    0 -1  f   -e -e  e   -1 -f  0   -e -e -e
+#  0 -1  f    0 -1 -f    e -e -e    1 -f  0    e -e  e
+#  1  f  0    1 -f  0    e -e  e    f  0  1    e  e  e
+#  1 -f  0    1  f  0    e  e -e    f  0 -1    e -e -e
+# -1  f  0   -1 -f  0   -e -e -e   -f  0 -1   -e  e -e
+# -1 -f  0   -1  f  0   -e  e  e   -f  0  1   -e -e  e
 
     20: {
         'name': 'Icosahedron',
@@ -137,12 +178,34 @@ platonics = {
         '3d_coords': torch.tensor([(0, Phi, 1), (0, Phi, -1), (0, -Phi, 1), (0, -Phi, -1),
                                    (1, 0, Phi), (1, 0, -Phi), (-1, 0, Phi), (-1, 0, -Phi),
                                    (Phi, 1, 0), (Phi, -1, 0), (-Phi, 1, 0), (-Phi, -1, 0)],
-                                  dtype=torch.float)}
-}
+                                  dtype=torch.float),
+        '3d_coords_dict': {
+             0:[[0,  d, -c], [ d,  c,  0], [-d,  c,  0]],
+             1:[[0,  d,  c], [-d,  c,  0], [ d,  c,  0]],
+             2:[[0,  d,  c], [ 0, -d,  c], [-c,  0,  d]],
+             3:[[0,  d,  c], [ c,  0,  d], [ 0, -d,  c]],
+             4:[[0,  d, -c], [ 0, -d, -c], [ c,  0, -d]],
+             5:[[0,  d, -c], [-c,  0, -d], [ 0, -d, -c]],
+             6:[[0, -d,  c], [ d, -c,  0], [-d, -c,  0]],
+             7:[[0, -d, -c], [-d, -c,  0], [ d, -c,  0]],
+             8:[[d,  c,  0], [-c,  0,  d], [-c,  0, -d]],
+             9:[[d, -c,  0], [-c,  0, -d], [-c,  0,  d]],
+             10:[[d,  c,  0], [ c,  0, -d], [ c,  0,  d]],
+             11:[[d, -c,  0], [ c,  0,  d], [ c,  0, -d]],
+             12:[[0,  d,  c], [-c,  0,  d], [-d,  c,  0]],
+             13:[[0,  d,  c], [ d,  c,  0], [ c,  0,  d]],
+             14:[[0,  d, -c], [-d,  c,  0], [-c,  0, -d]],
+             15:[[0,  d, -c], [ c,  0, -d], [ d,  c,  0]],
+             16:[[0, -d, -c], [-c,  0, -d], [-d, -c,  0]],
+             17:[[0, -d, -c], [ d, -c,  0], [ c,  0, -d]],
+             18:[[0, -d,  c], [-d, -c,  0], [-c,  0,  d]],
+             19:[[0, -d,  c], [ c,  0,  d], [ d, -c,  0]]}
+        }
+    }
 
 
 def plot_2d(num_faces):
-    shape_dict = platonics[num_faces]
+    shape_dict = platonics_dict[num_faces]
     fig, ax = plt.subplots()
     graph = Data(y=shape_dict['2d_nodes'], edge_index=shape_dict['2d_edge_index'], pos=shape_dict['2d_coords'])
     G = to_networkx(graph)
@@ -154,7 +217,7 @@ def plot_2d(num_faces):
 
 def plot_3d(num_faces):
     # https://stackoverflow.com/questions/65752590/converting-a-networkx-2d-graph-into-a-3d-interactive-graph
-    shape_dict = platonics[num_faces]
+    shape_dict = platonics_dict[num_faces]
     graph = Data(y=shape_dict['3d_nodes'], edge_index=shape_dict['3d_edge_index'], pos=shape_dict['3d_coords'])
     G = to_networkx(graph)
     edges = G.edges()
@@ -233,7 +296,7 @@ def plot_3d(num_faces):
 # pip install pyqt5
 # from mayavi import mlab
 def plot_3d_ii(num_faces):
-    shape_dict = platonics[num_faces]
+    shape_dict = platonics_dict[num_faces]
     graph = Data(y=shape_dict['3d_nodes'], edge_index=shape_dict['2d_edge_index'], pos=shape_dict['3d_coords'])
     G = to_networkx(graph)
     # # some graphs to try
