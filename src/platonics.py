@@ -120,10 +120,11 @@ platonics_dict = {
             5: [[-1, -1, -1], [-1, 1, -1], [1, 1, -1], [1, -1, -1]]
         },
 
-        'group_rotation': { #dictionary that describes the rotation needed to map frame on f1 to frame on f2, and also vertexes on f1 to points on f2
-            [f1_idx,f2_idx]: torch.tensor([,,],
-                                  [,,],
-                                  [,,], dtype=torch.float)
+        'group_rotation': {
+            # dictionary that describes the rotation needed to map frame on f1 to frame on f2, and also vertexes on f1 to points on f2
+            'f1_idx:f2_idx': torch.tensor([1, 0, 0],
+                                          [0, 1, 0],
+                                          [0, 1, 0], dtype=torch.float)
         }
     },
 
