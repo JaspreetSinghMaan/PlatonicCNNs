@@ -2,6 +2,10 @@ from platonics import platonics_dict
 from base_classes import Shape, Chart, Face
 
 
+atlas = {charts:[]}
+
+charts
+
 class Icosaheadron(Shape):
     def __init__(self, num_faces=20, resolution=1):
         super(Shape, self).__init__(num_faces, resolution)
@@ -13,3 +17,7 @@ class Icosaheadron(Shape):
         faces_dict = {}
         for i in range(self.num_faces):
             faces_dict[i] = Face(self.resolution, self.vertices)
+
+
+
+

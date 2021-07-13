@@ -24,6 +24,7 @@ f = 2 - Phi
 # https://www.mathsisfun.com/geometry/model-construction-tips.html
 # http://www.maths.surrey.ac.uk/hosted-sites/R.Knott/Fibonacci/phi3DGeom.html#section3
 # http://paulbourke.net/geometry/platonic/ - used for 3d_coords_dict
+#todo only working on Cube values for now, other shapes will need implementing subsequently
 platonics_dict = {
     4: {
         'name': 'Tetrahedron',

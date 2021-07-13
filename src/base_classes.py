@@ -6,21 +6,21 @@ from utils import find_3d_rotation, find_3d_frame_transform
 
 class Shape(ABC):
     def __init__(self, num_faces, resolution):
-
         if num_faces not in [4, 6, 8, 12, 20]:
             raise ValueError("Not a Platonic number of faces!")
 
         if num_faces == 12 and resolution > 1:
             raise ValueError("Subdivision not currently implemented for Dodecahedron!")
-        elif num_faces in [4, 8, 20] and resolution % 2 != 1:
-            raise ValueError("Must be an odd number of traingles per edge for these Platonics")
+        # elif num_faces in [4, 8, 20] and resolution % 2 != 1:
+        #     raise ValueError("Must be an odd number of traingles per edge for these Platonics")
 
         self.num_faces = num_faces
         self.resolution = resolution
         self.faces = self.generate_faces()
 
+
     @abstractclassmethod
-    def generate_faces(self):
+    def generate_atlas(self):
         pass
 
 
@@ -33,6 +33,8 @@ class Chart(ABC):
         self.gauge_transform = None
         self.exterior_points = {}
         self.interior_points = {}
+
+
 
     def get_gauge_transformation(self, face1, face2):
         # get indices for vertexes that describing x and y axis for both faces
@@ -71,10 +73,10 @@ class Face(ABC):
         pass
 
 
-class Big_triangle(object):
-    def __init__(self, resolution, vertices):
-        self.resolution = resolution
-        self.vertices = vertices
+# class Big_triangle(object):
+#     def __init__(self, resolution, vertices):
+#         self.resolution = resolution
+#         self.vertices = vertices
 
 class Points(object):
     def __init__(self, type, coords, value):

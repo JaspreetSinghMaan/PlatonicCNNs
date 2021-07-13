@@ -26,6 +26,5 @@ def find_3d_frame_transform(f1ex, f2ex, f1ey, f2ey):
     #I think you can do this: assume that we consider e1,e2 orthonormal and wanna send them to f1,f2, again orthonormal.
     # Then the unique rotation doing this is f_1^T * e_1 + f_2^T * e_2 + f_3^T * e_3,
     # where e_3 and f_3 are the cross product of e_1,e_2 and f_1,f_2 respectively
-
-
-    return R
+    pass
+    # return R
