@@ -7,18 +7,17 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-
 SR3 = np.sqrt(3)
 SR2 = np.sqrt(2)
-Phi = (1 + np.sqrt(5)) / 2 #1.61803
+Phi = (1 + np.sqrt(5)) / 2  # 1.61803
 phi = Phi - 1
-#octahedron
+# octahedron
 a = 1 / (2 * np.sqrt(2))
 b = 1 / 2
-#icosahedron
+# icosahedron
 c = 1 / 2
 d = 1 / (2 * Phi)
-#dodecahedron
+# dodecahedron
 e = 1 / Phi
 f = 2 - Phi
 
@@ -48,7 +47,7 @@ platonics_dict = {
             1: [[-1, 1, -1], [-1 - 1, 1], [1 - 1 - 1]],
             2: [[1, 1, 1], [1, -1 - 1], [-1, -1, 1]],
             3: [[1, 1, 1], [-1, -1, 1], [-1, 1, -1]]}
-        },
+    },
 
     6: {
         'name': 'Cube',
@@ -67,20 +66,31 @@ platonics_dict = {
              10, 13, 11, 12]]),
         '3d_num_edges': 12,
         '3d_nodes': range(8),
-        '3d_edge_index': torch.tensor([
+        '3d_edge_index': torch.tensor([  # edges described by corner node indices
             [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7],
             [1, 3, 4, 0, 2, 5, 1, 3, 6, 0, 2, 7, 0, 5, 7, 1, 4, 6, 2, 5, 7, 3, 4, 6]], dtype=torch.long),
 
         '3d_face_vertex_indx': {
-            0: [0,1,2,3],
-            1: [0,1,4,5],
-            2: [1,2,6,5],
-            3: [2,3,7,6],
-            4: [0,3,7,4],
-            5: [4,5,6,7]
-            },
+            # a list of VERTEX indices for each face using 'radial' right hand thumb rule, starting for the lowest vertex index
+            0: [0, 1, 2, 3],
+            1: [0, 1, 4, 5],
+            2: [1, 2, 6, 5],
+            3: [2, 3, 7, 6],
+            4: [0, 3, 7, 4],
+            5: [4, 5, 6, 7]
+        },
 
-        '3d_vertex_coords': {
+        '3d_face_adjacencies': {
+            # a list adjacent of FACE indices for each face using 'radial' right hand thumb rule, starting for the lowest face index
+            0: [1, 4, 3, 2],
+            1: [0, 2, 4, 5],
+            2: [0, 3, 5, 1],
+            3: [0, 4, 5, 2],
+            4: [0, 1, 5, 3],
+            5: [1, 2, 3, 4]
+        },
+
+        '3d_vertex_coords': {  # 3d coordinates with centre mass at (0, 0, 0)
             0: [-1, -1, -1],
             1: [1, -1, -1],
             2: [1, 1, -1],
@@ -88,16 +98,34 @@ platonics_dict = {
             4: [-1, -1, 1],
             5: [1, -1, 1],
             6: [1, 1, 1],
-            7: [-1, 1, 1]},
-
-        '3d_face_vertex_coords': {
-            0:[[-1, -1, -1], [ 1, -1, -1], [ 1, -1,  1], [-1, -1,  1]],
-            1:[[-1, -1, -1], [-1, -1,  1], [-1,  1,  1], [-1,  1, -1]],
-            2:[[-1, -1,  1], [ 1, -1,  1], [ 1,  1,  1], [-1,  1,  1]],
-            3:[[-1,  1, -1], [-1,  1,  1], [ 1,  1,  1], [ 1,  1, -1]],
-            4:[[1, -1, -1], [ 1,  1, -1], [ 1,  1,  1], [ 1, -1,  1]],
-            5:[[-1, -1, -1], [-1,  1, -1], [ 1,  1, -1], [ 1, -1, -1]]},
+            7: [-1, 1, 1]
         },
+
+        # - Determine for each pair of overlapping charts, how directions are changed when going from one chart to the other. In other words, determine the transition map.
+        '3d_face_frame_indx': {  # direction of x-axis and y-axis for each face use vertex indices
+            0: [[3, 2], [3, 0]],
+            1: [[0, 1], [0, 4]],
+            2: [[1, 2], [1, 5]],
+            3: [[2, 3], [2, 6]],
+            4: [[3, 0], [3, 7]],
+            5: [[4, 5], [4, 7]]
+        },
+
+        '3d_face_vertex_coords': {  # coordinates of each node defining a face
+            0: [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]],
+            1: [[-1, -1, -1], [-1, -1, 1], [-1, 1, 1], [-1, 1, -1]],
+            2: [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]],
+            3: [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]],
+            4: [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]],
+            5: [[-1, -1, -1], [-1, 1, -1], [1, 1, -1], [1, -1, -1]]
+        },
+
+        'group_rotation': { #dictionary that describes the rotation needed to map frame on f1 to frame on f2, and also vertexes on f1 to points on f2
+            [f1_idx,f2_idx]: torch.tensor([,,],
+                                  [,,],
+                                  [,,], dtype=torch.float)
+        }
+    },
 
     8: {
         'name': 'Octahedron',
@@ -128,7 +156,7 @@ platonics_dict = {
             5: [[-a, 0, -a], [-a, 0, a], [0, -b, 0]],
             6: [[a, 0, a], [a, 0, -a], [0, -b, 0]],
             7: [[-a, 0, a], [a, 0, a], [0, -b, 0]]}
-        },
+    },
 
     # todo need Dodecahedron 2d stats
     # 12: {
@@ -151,18 +179,18 @@ platonics_dict = {
     #         [],
     #         []])},
 
-#  f  0  1   -f  0  1   -e  e  e    0  1  f    e  e  e
-# -f  0  1    f  0  1    e -e  e    0 -1  f   -e -e  e
-#  f  0 -1   -f  0 -1   -e -e -e    0 -1 -f    e -e -e
-# -f  0 -1    f  0 -1    e  e -e    0  1 -f   -e  e -e
-#  0  1 -f    0  1  f    e  e  e    1  f  0    e  e -e
-#  0  1  f    0  1 -f   -e  e -e   -1  f  0   -e  e  e
-#  0 -1 -f    0 -1  f   -e -e  e   -1 -f  0   -e -e -e
-#  0 -1  f    0 -1 -f    e -e -e    1 -f  0    e -e  e
-#  1  f  0    1 -f  0    e -e  e    f  0  1    e  e  e
-#  1 -f  0    1  f  0    e  e -e    f  0 -1    e -e -e
-# -1  f  0   -1 -f  0   -e -e -e   -f  0 -1   -e  e -e
-# -1 -f  0   -1  f  0   -e  e  e   -f  0  1   -e -e  e
+    #  f  0  1   -f  0  1   -e  e  e    0  1  f    e  e  e
+    # -f  0  1    f  0  1    e -e  e    0 -1  f   -e -e  e
+    #  f  0 -1   -f  0 -1   -e -e -e    0 -1 -f    e -e -e
+    # -f  0 -1    f  0 -1    e  e -e    0  1 -f   -e  e -e
+    #  0  1 -f    0  1  f    e  e  e    1  f  0    e  e -e
+    #  0  1  f    0  1 -f   -e  e -e   -1  f  0   -e  e  e
+    #  0 -1 -f    0 -1  f   -e -e  e   -1 -f  0   -e -e -e
+    #  0 -1  f    0 -1 -f    e -e -e    1 -f  0    e -e  e
+    #  1  f  0    1 -f  0    e -e  e    f  0  1    e  e  e
+    #  1 -f  0    1  f  0    e  e -e    f  0 -1    e -e -e
+    # -1  f  0   -1 -f  0   -e -e -e   -f  0 -1   -e  e -e
+    # -1 -f  0   -1  f  0   -e  e  e   -f  0  1   -e -e  e
 
     20: {
         'name': 'Icosahedron',
@@ -196,28 +224,28 @@ platonics_dict = {
                                    (Phi, 1, 0), (Phi, -1, 0), (-Phi, 1, 0), (-Phi, -1, 0)],
                                   dtype=torch.float),
         '3d_coords_dict': {
-             0:[[0,  d, -c], [ d,  c,  0], [-d,  c,  0]],
-             1:[[0,  d,  c], [-d,  c,  0], [ d,  c,  0]],
-             2:[[0,  d,  c], [ 0, -d,  c], [-c,  0,  d]],
-             3:[[0,  d,  c], [ c,  0,  d], [ 0, -d,  c]],
-             4:[[0,  d, -c], [ 0, -d, -c], [ c,  0, -d]],
-             5:[[0,  d, -c], [-c,  0, -d], [ 0, -d, -c]],
-             6:[[0, -d,  c], [ d, -c,  0], [-d, -c,  0]],
-             7:[[0, -d, -c], [-d, -c,  0], [ d, -c,  0]],
-             8:[[d,  c,  0], [-c,  0,  d], [-c,  0, -d]],
-             9:[[d, -c,  0], [-c,  0, -d], [-c,  0,  d]],
-             10:[[d,  c,  0], [ c,  0, -d], [ c,  0,  d]],
-             11:[[d, -c,  0], [ c,  0,  d], [ c,  0, -d]],
-             12:[[0,  d,  c], [-c,  0,  d], [-d,  c,  0]],
-             13:[[0,  d,  c], [ d,  c,  0], [ c,  0,  d]],
-             14:[[0,  d, -c], [-d,  c,  0], [-c,  0, -d]],
-             15:[[0,  d, -c], [ c,  0, -d], [ d,  c,  0]],
-             16:[[0, -d, -c], [-c,  0, -d], [-d, -c,  0]],
-             17:[[0, -d, -c], [ d, -c,  0], [ c,  0, -d]],
-             18:[[0, -d,  c], [-d, -c,  0], [-c,  0,  d]],
-             19:[[0, -d,  c], [ c,  0,  d], [ d, -c,  0]]}
-        }
+            0: [[0, d, -c], [d, c, 0], [-d, c, 0]],
+            1: [[0, d, c], [-d, c, 0], [d, c, 0]],
+            2: [[0, d, c], [0, -d, c], [-c, 0, d]],
+            3: [[0, d, c], [c, 0, d], [0, -d, c]],
+            4: [[0, d, -c], [0, -d, -c], [c, 0, -d]],
+            5: [[0, d, -c], [-c, 0, -d], [0, -d, -c]],
+            6: [[0, -d, c], [d, -c, 0], [-d, -c, 0]],
+            7: [[0, -d, -c], [-d, -c, 0], [d, -c, 0]],
+            8: [[d, c, 0], [-c, 0, d], [-c, 0, -d]],
+            9: [[d, -c, 0], [-c, 0, -d], [-c, 0, d]],
+            10: [[d, c, 0], [c, 0, -d], [c, 0, d]],
+            11: [[d, -c, 0], [c, 0, d], [c, 0, -d]],
+            12: [[0, d, c], [-c, 0, d], [-d, c, 0]],
+            13: [[0, d, c], [d, c, 0], [c, 0, d]],
+            14: [[0, d, -c], [-d, c, 0], [-c, 0, -d]],
+            15: [[0, d, -c], [c, 0, -d], [d, c, 0]],
+            16: [[0, -d, -c], [-c, 0, -d], [-d, -c, 0]],
+            17: [[0, -d, -c], [d, -c, 0], [c, 0, -d]],
+            18: [[0, -d, c], [-d, -c, 0], [-c, 0, d]],
+            19: [[0, -d, c], [c, 0, d], [d, -c, 0]]}
     }
+}
 
 
 def plot_2d(num_faces):
