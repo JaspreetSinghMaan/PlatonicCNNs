@@ -27,8 +27,6 @@ symm_face_frame_0_to_i={
     # TO BE ADDED add other symmetries
 }
 
-import numpy as np
-
 def chart(i,r,x):
     # chart brings points on the cube to Z^2
     # i is an index between 0 and 5, denoting the corresponding face index
