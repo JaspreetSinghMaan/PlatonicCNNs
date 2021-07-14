@@ -1,5 +1,5 @@
 import unittest
-from src.eqCNN import S2SGaugeCNN2D
+from src.eqCNN import S2SCubeConv2D
 
 class EqCNNTests(unittest.TestCase):
   def setUp(self):
@@ -30,7 +30,7 @@ class EqCNNTests(unittest.TestCase):
 
     if model_type == 'S2S' and group == "C4":
       #choose model
-      model = S2SGaugeCNN2D(c_in=self.c_in, c_out=4, r_in=self.r_in, r_out=1, kernel_size=3, stride=1, bias=True)
+      model = S2SCubeConv2D(c_in=self.c_in, c_out=4, r_in=self.r_in, r_out=1, kernel_size=3, stride=1, bias=True)
 
       # choose number of rotations
       num_rotations = 1 #random.randint(0,3)
@@ -43,16 +43,17 @@ class EqCNNTests(unittest.TestCase):
         rot_output = group_transform(rot_output)
 
       eq_output = model(rot_input)
+      print(f"eq_output: {eq_output.size()}")
       with torch.no_grad():
-        if np.allclose(eq_output.numpy(), rot_output.numpy()): # keeping it torch form had issues with gradfn, will fix it later
+        if np.allclose(eq_output.numpy(), rot_output.numpy(), rtol=1e-03, atol=1e-03, equal_nan=False): # keeping it torch form had issues with gradfn, will fix it later
           print("C4 equivariance test passed!")
         else:
           print("C4 equivariance test failed!")
-          print(f"input: {input}")
-          print(f"rot_output: {rot_input}")
-          print(f"output: {output}")
-          print(f"rot_output: {rot_output}")
-          print(f"eq_output: {eq_output}")
+          print(f"input: {torch.tensor(input.tolist())}")
+          print(f"rot_input: {torch.tensor(rot_input.tolist())}")
+          print(f"output: {torch.tensor(output.tolist())}")
+          print(f"rot_output: {torch.tensor(rot_output.tolist())}")
+          print(f"eq_output: {torch.tensor(eq_output.tolist())}")
     
     return 
 
