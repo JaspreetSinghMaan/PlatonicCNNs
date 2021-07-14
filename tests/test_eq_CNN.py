@@ -3,8 +3,8 @@ from src.eqCNN import S2SGaugeCNN2D
 
 class EqCNNTests(unittest.TestCase):
   def setUp(self):
-    self.batch_size = 1 # random.randint(1,20)
-    self.c_in = 1 #random.randint(1,6)
+    self.batch_size = random.randint(1,20)
+    self.c_in = random.randint(1,6)
     self.r_in = 1
     self.H = random.randint(3,8)
 
@@ -22,6 +22,7 @@ class EqCNNTests(unittest.TestCase):
           input_c4[:,:,:,i,j] = input[:,:,:,input_shape[-1]-1-j,i]
       return input_c4
     return
+
   def test(self, group="C4", model_type='S2S'):
     # input_shape = (batch_size, c_in, r_in, H, W)
 
