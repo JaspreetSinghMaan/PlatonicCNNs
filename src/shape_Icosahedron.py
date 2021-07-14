@@ -1,15 +1,16 @@
 from platonics import platonics_dict
-from base_classes import Shape, Chart, Face
+from base_classes import Shape
+from utils import get_edge_pairs
 
 
-class Icosaheadron(Shape):
-    def __init__(self, num_faces=20, resolution=1):
-        super(Shape, self).__init__(num_faces, resolution)
-        self.resolution = resolution
-        self.vertices = platonics_dict[self.num_faces]['3d_coords_dict']
-        self.faces_dict = self.generate_faces()
+class Icosahedron(Shape):
+    def __init__(self):
+        super(Icosahedron, self).__init__(num_faces=20)
+        edges = get_edge_pairs(self.num_faces)
 
-    def generate_faces(self):
-        faces_dict = {}
-        for i in range(self.num_faces):
-            faces_dict[i] = Face(self.resolution, self.vertices)
+        self.atlas_dict = {
+            'chart_faces': [[0], [1], [2], [3], [4], [5]],
+            # a dictionary to describe which faces form which charts within an atlas, or # 'chart_faces':[[0,1,2,3,4,5]]
+            'edges': edges,
+            'transition_map': {}  # {#k f1:f1 #v 2x2 matrices in C4  #store the rotational information
+        }

@@ -14,7 +14,6 @@ class Shape(ABC):
             raise ValueError("Not a Platonic number of faces!")
 
         self.num_faces = num_faces
-        self.vertex_coords = platonics_dict[self.num_faces]['3d_coords_dict']
         self.name = platonics_dict[self.num_faces]['name']
         self.num_edges = platonics_dict[self.num_faces]['3d_num_edges']
         self.nodes_index = platonics_dict[self.num_faces]['3d_nodes']
@@ -78,7 +77,7 @@ class Atlas(ABC):
         self.shape = shape
         self.atlas_dict = shape.atlas_dict
         self.grid = grid
-        self.charts_dict = self.generate_charts_dict(self)
+        self.charts_dict = self.generate_charts_dict()
 
     def generate_charts_dict(self):
         '''
@@ -126,7 +125,7 @@ class Chart(ABC):
         pass
 
 
-class Signal(torch.tensor):
+class Signal(ABC):
     '''
     Description - class to project the signal from data to the grid and then to the 2d charts and plot in 3d for visualisation
     It's a torch.tensor object that is passed to the gauge_CNN in nthe forward pass
@@ -143,7 +142,6 @@ class Signal(torch.tensor):
         it's expected spherical data will be ((x,y,z),(r,g,b))
         :return: platonic data will be of the same format ((x,y,z),(r,g,b))
         '''
-
         # this is done via projection of a the grid point coordinates to the sphere
         # find the closest pixel value to this point #Warning comutational complexity here!!
         # and then recording the coordinates and pixel value for each point in the grid
@@ -164,7 +162,7 @@ class Signal(torch.tensor):
         '''
         for each chart
         transforms 3D platonic data of form ((x,y,z),(r,g,b))
-        to large 2d data arrays of form (1,1,(rbg)) ie a tensor with values but no explicit coordinates
+        to large 2d data arrays of form (height,width,(rbg)) ie a tensor with values but no explicit coordinates
         :return: dict{chart number: 2d array}
         '''
         twoD_array_dict = {}
@@ -172,10 +170,21 @@ class Signal(torch.tensor):
         for chart_num, chart in atlas.charts_dict.items():
             twoD_array_dict[chart_num] = chart.chart_bij_inv()
 
+
     def atlas_to_tensor(self):
         '''
         takes the twoD_array_dict of 2d charts and converts to torch tensor ready to pass through model
         :return:
+        '''
+
+
+    def apply_group_sym_action(self, rho):
+        '''
+        for each chart
+        Implement a function that applies a symmetry transformation to a signal stored in a rectangular array.
+        This is done by mapping the integer pixel coordinates in the array to pixel positions on the platonic solid,
+        rotating those, and mapping the transformed pixels back to the plane using an inverse chart.
+        :return: 2d data array of form (height,width,(rbg))
         '''
 
 

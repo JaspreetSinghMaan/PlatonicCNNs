@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from base_classes import Shape
 from torch_geometric.data import Data
 from torch_geometric.utils.convert import to_networkx
 import networkx as nx
@@ -123,9 +122,9 @@ platonics_dict = {
 
         'group_rotation': {
             # dictionary that describes the rotation needed to map frame on f1 to frame on f2, and also vertexes on f1 to points on f2
-            'f1_idx:f2_idx': torch.tensor([1, 0, 0],
+            'f1_idx:f2_idx': torch.tensor([[1, 0, 0],
                                           [0, 1, 0],
-                                          [0, 1, 0], dtype=torch.float)
+                                          [0, 1, 0]], dtype=torch.float)
         }
     },
 

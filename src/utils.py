@@ -29,5 +29,16 @@ def find_3d_frame_transform(f1ex, f2ex, f1ey, f2ey):
     pass
     # return R
 
-def get_edge_pairs():
-    platonics_dict['3d_face_adjacencies']
+
+def get_edge_pairs(num_faces):
+    '''
+    generate all edges defined by pairs of face indices
+    :param num_faces:
+    :return:
+    '''
+    face_adjacencies = platonics_dict[num_faces]['3d_face_adjacencies']
+    edges = []
+    for face1, faces2 in face_adjacencies.items():
+        for face2 in faces2:
+            edges.append([face1,face2])
+    return edges

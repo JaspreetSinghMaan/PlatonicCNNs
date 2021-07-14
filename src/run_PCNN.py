@@ -1,9 +1,12 @@
 import argparse
 import time
 import torch
-from base_classes import Shape
+import matplotlib.pyplot as plt
+
+from base_classes import Shape, Grid, Atlas, Signal
 from shape_Cube import Cube
-from data import import_omni_data
+from shape_Icosahedron import Icosahedron
+from data import load_data
 from eqCNN import S2SGaugeCNN2D
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -44,19 +47,35 @@ def test(model, data, opt=None):  # opt required for runtime polymorphism
 
 
 def main(opt):
-    # load omni data
-    omni_data = import_omni_data(opt)
-
     # instatiate shape
-    cube = Cube()
-        # this will instantiate atlas of charts
-        # instantiate pixel grid for each face in each chart
+    if opt['num_faces'] == 6:
+        shape = Cube()
+    elif opt['num_faces'] == 20:
+        shape = Icosohedron()
+    else:
+        raise ValueError("Platonic not yet implemented!")
+    #instatiate grid
+    grid = Grid(shape, opt['resolution'])
+    #instantiate Atlas - this will instantiate atlas of charts
+    atlas = Atlas(shape, grid)
 
-    # run shape method to project each omni image onto a each chart in atlas
-    #     run G-padding method of shape
-    #      save as a torch custom data type
-    platonic_data = cube.project_data(omni_data) #projects data onto face
-    chart_data = cube.run_G_padding(platonic_data) #construct charts from face data
+    # load omni data
+    train_loader, test_loader, train_dataset, _ = load_data(f"../data/{opt['data_file_path']}", opt['batch_size'])
+    # todo this is still 2d data from s2conv paper
+    # next try here https://github.com/ChiWeiHsiao/SphereNet-pytorch/blob/master/spherenet/dataset.py
+
+    # for _ in range(5):
+    #     images, labels = next(iter(train_loader))
+    #     plt.imshow(images[0].squeeze().numpy(), cmap="gray")
+    #     plt.show()
+
+    #todo inside the load_data need to create custom torch dataset from spherical mnist following below steps
+    spherical_data = train_dataset #this insn't yet spherical data
+    signal = Signal(spherical_data, grid, atlas)
+    signal.transform_to_platonic()
+    signal.transform_to_atlas()
+    chart_data = signal.atlas_to_tensor()
+
 
     # instantiate PCNN.py
     if opt['g_conv_type'] == 'S2S':
@@ -65,7 +84,6 @@ def main(opt):
         pass
     elif opt['g_conv_type'] == 'R2R':
         pass
-
 
 
     # standard torch training code
@@ -95,6 +113,7 @@ if __name__ == "__main__":
 
     #data args
     parser.add_argument('--dataset', type=str, default='omni_mnist', help = 'omni_mnist, environment')
+    parser.add_argument('--data_file_path', type=str, default="s2_mnist.gz", help = 'S2 data file')
 
     #main args
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -102,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
     parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
     parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
+    parser.add_argument('--batch_size', type=int, default=8, help='batch_size')
 
     #Platonic Shape args
     # parser.add_argument('--shape', type=str, default='Cube', help='Tetrahedron, Cube, Octahedron, Dodecahedron, Icosahedron')
