@@ -16,7 +16,12 @@ class Cube(Shape):
         for i in range(self.num_faces):
             faces_dict[i] = Face(self.resolution, self.vertices)
 
+
     def project_data(self):
+        # code to project data onto each face
         pass
 
+    def run_G_padding(self, dataset):
+        # code to create each chart
+        pass
 
