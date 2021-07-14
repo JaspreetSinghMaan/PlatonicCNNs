@@ -15,7 +15,7 @@ class CubeTests(unittest.TestCase):
     # self.assertTrue(torch.all(torch.eq(get_round_sum(), 1.)))
     # self.assertTrue(torch.all( > 0.))
 
-  if __name__ == '__main__':
-      tests = CubeTests()
-      tests.setUp()
-      tests.test()
+if __name__ == '__main__':
+  tests = CubeTests()
+  tests.setUp()
+  tests.test()
