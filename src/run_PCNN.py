@@ -1,10 +1,10 @@
 import argparse
 import time
 import torch
-from PCNN import PCNN
+from base_classes import Shape
 from shape_Cube import Cube
 from data import import_omni_data
-
+from eqCNN import S2SGaugeCNN2D
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -48,7 +48,8 @@ def main(opt):
     omni_data = import_omni_data(opt)
 
     # instatiate shape
-    cube = Cube(num_faces=6, resolution=1)
+    shape = Shape(num_face=6)
+    shape = Cube()
         # this will instantiate atlas of charts
         # instantiate pixel grid for each face in each chart
 
@@ -60,7 +61,7 @@ def main(opt):
 
     # instantiate PCNN.py
     if opt['g_conv_type'] == 'S2S':
-        model = PCNN(opt)
+        model = S2SGaugeCNN2D(opt)
     elif opt['g_conv_type'] == 'S2R':
         pass
     elif opt['g_conv_type'] == 'R2R':
