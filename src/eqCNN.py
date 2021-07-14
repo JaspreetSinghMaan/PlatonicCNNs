@@ -5,15 +5,16 @@ import torch
 import math
 
 # Scalar to scalar (isotropic) 2D G-CNN
-class S2SGaugeCNN2D(nn.Module):
+class S2SCubeConv2D(nn.Module):
   
   def __init__(self, c_in, c_out, r_in, r_out, kernel_size=3, stride=1, bias=True):
     '''
     r_in = r_out = 1 for S2S
-    Input dimensions: (B; C; R; 5; H; W )
+    Input dimensions: (batch_size; c_in; r_in; H; H )
     No padding here, we assume the input is padded
+    Output dimensions: (batch_size; c_out; r_out; H'; H' ) ; H' needs to be computed based on stride and kernel_size
     '''
-    super(S2SGaugeCNN2D, self).__init__()
+    super(S2SCubeConv2D, self).__init__()
 
     self.c_in = c_in
     self.c_out = c_out
@@ -32,10 +33,7 @@ class S2SGaugeCNN2D(nn.Module):
       self.bias = self.register_parameter('bias', None)
 
     self.reset_parameters()    
-    self.eq_weight = None # eq_weight should have dimensions c_out, c_in, r_in, kernel_size, kernel_size
     self.eq_indices = self.get_eq_indices()  # currently implemented for S2S, but modify it for S2R and R2R as and when needed
-    if self.eq_indices is not None:
-      self.eq_weight = self.weight.data[:,:,:, self.eq_indices] # 
 
   def reset_parameters(self):
     n = self.c_in * self.kernel_size ** 2
@@ -53,7 +51,10 @@ class S2SGaugeCNN2D(nn.Module):
   
   def forward(self, input):
     eq_weight_shape = (self.c_out, self.c_in, self.kernel_size, self.kernel_size)
-    eq_weight = self.eq_weight.view(eq_weight_shape)
+    eq_weight = self.weight
+    if self.eq_indices is not None:
+      eq_weight = self.weight[:,:,:, self.eq_indices]
+    eq_weight = eq_weight.view(eq_weight_shape)
 
     input_shape = input.size()
     input = input.view(input_shape[0], self.c_in*self.r_in, input_shape[-2], input_shape[-1]) # input_shape[0] = batch_size, (input_shape[-2], input_shape[-1]) = (H, W)
