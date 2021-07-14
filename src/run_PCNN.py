@@ -1,10 +1,10 @@
 import argparse
 import time
 import torch
-from PCNN import PCNN
+from base_classes import Shape
 from shape_Cube import Cube
 from data import import_omni_data
-
+from eqCNN import S2SGaugeCNN2D
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -20,6 +20,7 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
   else:
     raise Exception("Unsupported optimizer: {}".format(name))
 
+
 def train(model, optimizer, data):
     model.train()
     optimizer.zero_grad()
@@ -29,6 +30,7 @@ def train(model, optimizer, data):
     loss.backward()
     optimizer.step()
     return loss.item()
+
 
 @torch.no_grad()
 def test(model, data, opt=None):  # opt required for runtime polymorphism
@@ -40,23 +42,31 @@ def test(model, data, opt=None):  # opt required for runtime polymorphism
     accs.append(acc)
   return accs
 
+
 def main(opt):
-    pass
     # load omni data
     omni_data = import_omni_data(opt)
 
     # instatiate shape
-    cube = Cube(num_faces=20, resolution=1)
+    cube = Cube()
         # this will instantiate atlas of charts
         # instantiate pixel grid for each face in each chart
 
     # run shape method to project each omni image onto a each chart in atlas
-    #     run G-padding
+    #     run G-padding method of shape
     #      save as a torch custom data type
-    dataset = cube.project_data()
+    platonic_data = cube.project_data(omni_data) #projects data onto face
+    chart_data = cube.run_G_padding(platonic_data) #construct charts from face data
 
     # instantiate PCNN.py
-    model = PCNN(opt)
+    if opt['g_conv_type'] == 'S2S':
+        model = S2SGaugeCNN2D(opt)
+    elif opt['g_conv_type'] == 'S2R':
+        pass
+    elif opt['g_conv_type'] == 'R2R':
+        pass
+
+
 
     # standard torch training code
     parameters = [p for p in model.parameters() if p.requires_grad]
@@ -64,8 +74,8 @@ def main(opt):
     best_val_acc = test_acc = train_acc = best_epoch = 0
     for epoch in range(1, opt['epoch']):
         start_time = time.time()
-        loss = train(model, optimizer, dataset.data)
-        train_acc, val_acc, tmp_test_acc = test(model, dataset.data, opt)
+        loss = train(model, optimizer, chart_data.data)
+        train_acc, val_acc, tmp_test_acc = test(model, chart_data.data, opt)
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             test_acc = tmp_test_acc
@@ -76,11 +86,30 @@ def main(opt):
     return train_acc, best_val_acc, test_acc
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('--store_true', action='store_true', help='')
-    parser.add_argument('--string', type=str, default='string', help='string')
-    parser.add_argument('--int', type=int, default=4, help='int')
-    parser.add_argument('--float', type=float, default=0.5, help='float')
+    # parser.add_argument('--store_true', action='store_true', help='')
+    # parser.add_argument('--string', type=str, default='string', help='string')
+    # parser.add_argument('--int', type=int, default=4, help='int')
+    # parser.add_argument('--float', type=float, default=0.5, help='float')
+
+    #data args
+    parser.add_argument('--dataset', type=str, default='omni_mnist', help = 'omni_mnist, environment')
+
+    #main args
+    parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
+    parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
+    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
+    parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
+    parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
+
+    #Platonic Shape args
+    # parser.add_argument('--shape', type=str, default='Cube', help='Tetrahedron, Cube, Octahedron, Dodecahedron, Icosahedron')
+    parser.add_argument('--num_faces', type=int, default=6, help='4, 6, 8, 12, 20')
+    parser.add_argument('--resolution', type=int, default=4, help='int')
+
+    #PCNN args
+    parser.add_argument('--g_conv_type', type=str, default='S2S', help='S2S, S2R, R2R')
 
     args = parser.parse_args()
     opt = vars(args)

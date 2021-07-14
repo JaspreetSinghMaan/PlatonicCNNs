@@ -1,22 +1,17 @@
 from platonics import platonics_dict
-from base_classes import Shape, Chart, Face
+from base_classes import Shape, Chart
 
-# atlas = {charts:[]}
-# charts
+
+
 
 class Cube(Shape):
-    def __init__(self, num_faces=20, resolution=1):
-        super(Cube, self).__init__(num_faces, resolution)
-        self.resolution = resolution
-        self.vertices = platonics_dict[self.num_faces]['3d_coords_dict']
-        self.faces_dict = self.generate_faces()
+    def __init__(self):
+        super(Cube, self).__init__(num_faces = 6)
 
-    def generate_faces(self):
-        faces_dict = {}
-        for i in range(self.num_faces):
-            faces_dict[i] = Face(self.resolution, self.vertices)
-
-    def project_data(self):
-        pass
-
-
+        self.atlas_dict = {'chart_faces':[[0],[1],[2],[3],[4],[5]]} #a dictionary to describe which faces form which charts within an atlas,
+        # 'chart_faces':[[0,1,2,3,4,5]]
+        # '3d_face_adjacencies'  #subset of the 24 edges where two charts share an edge. (in the case where each chart is a face it's actually the full 24 edges)
+        # #apply for all 24 edges, noting many times this will be the 2x2 identity matrix
+        # #identify edges where theres a gauge transforamtion
+        # 'transition_map':# {#k f1:f1 #v 2x2 matrices in C4  #store the rotational information
+        # }

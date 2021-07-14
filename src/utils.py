@@ -28,3 +28,6 @@ def find_3d_frame_transform(f1ex, f2ex, f1ey, f2ey):
     # where e_3 and f_3 are the cross product of e_1,e_2 and f_1,f_2 respectively
     pass
     # return R
+
+def get_edge_pairs():
+    platonics_dict['3d_face_adjacencies']

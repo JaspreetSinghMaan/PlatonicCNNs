@@ -8,6 +8,15 @@ class PCNN(nn.Module):
 
     def __init__(self, opt):
         super(PCNN, self).__init__()
+
+        if opt['g_conv_type'] == 'std:std':
+            pass
+        elif opt['g_conv_type'] == 'std:reg':
+            pass
+        elif opt['g_conv_type'] == 'reg:reg':
+            pass
+
+
         self.conv1 = nn.Conv2d(in_channels=opt['im_chan'], out_channels=6, kernel_size=5)
         self.pool = nn.MaxPool2d(2, 2)
         self.conv2 = nn.Conv2d(6, 16, 5)
