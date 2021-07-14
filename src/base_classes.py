@@ -31,10 +31,10 @@ class Grid(ABC):
     '''
     an object that constructs and stores the 3d points and meta-information about a discretisation of a given platonic solid
     '''
-    def __init__(self, shape, resolution, ):
+    def __init__(self, shape, resolution):
         self.shape = shape
         self.resolution = resolution
-        self.face_cord, self.face_meta_data = self.generate_grid()
+        self.grid_dict = self.generate_grid()
 
     def generate_grid(self):
         '''
@@ -45,12 +45,16 @@ class Grid(ABC):
         }
         :return:
         '''
+        grid_dict = {}
+        for face in range(self.shape.num_faces):
+            grid_dict[face] = self.generate_face_grid()
+        return grid_dict
 
     def generate_face_grid(self):
         '''
         generates the grid for one face
         :return: 1 tensor of n x n x 3 for the coordinates and
-                1 tensor of n x n x 3 where (-1 = exterior, 0 = interior, 1 = vertex)
+                1 tensor of n x n x 3 where (-1 = edge, 0 = interior, 1 = vertex)     ----potentially -2 for padding
                 1 tensor of n x n x 1 where 1 contains index for face
                 dict for vertex k: v:
                 dict for edge k: v:
@@ -63,17 +67,18 @@ class Grid(ABC):
 
 class Atlas(ABC):
     '''
-    Atlas takes the grid and defines and constructs each 2D chart
-    Each individual platonic shape, will contain hard coded dictionary describing atlas and chart construction via face indices
+    Atlas takes the Grid and defines and constructs each Chart
+    Each individual platonic shape, will contain hard coded dictionary (atlas_dict) describing Atlas and Chart construction via Face indices
 
     It remains to be decided if:
     the charts will be processed serparately in the batch dimension
     or if the atlas is to be processed in one large concated block
     '''
-    def __init__(self, atlas_dict, grid):
-        self.atlas_dict = atlas_dict
+    def __init__(self, shape, grid):
+        self.shape = shape
+        self.atlas_dict = shape.atlas_dict
         self.grid = grid
-
+        self.charts_dict = self.generate_charts_dict(self)
 
     def generate_charts_dict(self):
         '''
@@ -82,7 +87,21 @@ class Atlas(ABC):
         method that concatonates charts to form 2D atlas
         :return:
         '''
+        charts_dict = {}
+        for chart_faces in self.atlas_dict:
+            for chart_num in chart_faces:
+                charts_dict[chart_num] = Chart(self.grid, chart_faces, self.atlas_dict)
+        return charts_dict
 
+
+class Chart(ABC):
+    '''
+    defines the set of points on the 3d face and their mapping to 2D set in the plane
+    '''
+    def __init__(self, grid, chart_faces, atlas_dict):
+        self.grid = grid
+        self.chart_faces = chart_faces
+        self.atlas_dict = atlas_dict
 
     def construct_chart(self):
         '''
@@ -91,44 +110,74 @@ class Atlas(ABC):
         '''
         pass
 
+    def chart_bij(self):
+        '''
+        maps point on the cube to point on the plane
+        '''
+        # 3d cordinates + meta inforamtion
+        face_indx = 0
+        face_cords, face_meta_data = self.grid.grid_dict[face_indx]
+
+    def chart_bij_inv(self):
+        '''
+        maps a point on the plane to corresponding point on the cube
+        :return:
+        '''
+        pass
 
 
-class Chart(ABC):
-    '''
-    defines the set of points on the 3d face and their mapping to 2D set in the plane
-    '''
-    def __init__(self, grid, atlas):
-        self.orientation = None
-        self.gauge_transform = None
-        self.exterior_points = {}
-        self.interior_points = {}
-
-
-class Signal(ABC):
+class Signal(torch.tensor):
     '''
     Description - class to project the signal from data to the grid and then to the 2d charts and plot in 3d for visualisation
     It's a torch.tensor object that is passed to the gauge_CNN in nthe forward pass
     '''
-    def __init__(self, spherical_data, grid, charts):
+    def __init__(self, spherical_data, grid, atlas):
         self.spherical_data = spherical_data
         self.grid = grid
+        self.platonic_data = self.transform_to_platonic()
+
 
     def transform_to_platonic(self):
         '''
         transforms spherical data to platonic data
+        it's expected spherical data will be ((x,y,z),(r,g,b))
+        :return: platonic data will be of the same format ((x,y,z),(r,g,b))
+        '''
+
+        # this is done via projection of a the grid point coordinates to the sphere
+        # find the closest pixel value to this point #Warning comutational complexity here!!
+        # and then recording the coordinates and pixel value for each point in the grid
+        self.spherical_data
+        platonic_data = None
+        return platonic_data
+
+    def visualise_platonic(self):
+        '''
+        here we visualise the spherical data projected onto the platonic shape
+        use mayavi or matplotlib 3d
         :return:
         '''
         pass
 
-    def transform_to_atlas(self):
+
+    def transform_to_atlas(self, platonic_data, atlas):
         '''
-        transforms platonic data to large 2d data
+        for each chart
+        transforms 3D platonic data of form ((x,y,z),(r,g,b))
+        to large 2d data arrays of form (1,1,(rbg)) ie a tensor with values but no explicit coordinates
+        :return: dict{chart number: 2d array}
+        '''
+        twoD_array_dict = {}
+
+        for chart_num, chart in atlas.charts_dict.items():
+            twoD_array_dict[chart_num] = chart.chart_bij_inv()
+
+    def atlas_to_tensor(self):
+        '''
+        takes the twoD_array_dict of 2d charts and converts to torch tensor ready to pass through model
         :return:
         '''
-        pass
 
-    def visualise(self):
-        pass
 
 
 class gauge_CNN(nn.Module):

@@ -48,8 +48,7 @@ def main(opt):
     omni_data = import_omni_data(opt)
 
     # instatiate shape
-    shape = Shape(num_face=6)
-    shape = Cube()
+    cube = Cube()
         # this will instantiate atlas of charts
         # instantiate pixel grid for each face in each chart
 
