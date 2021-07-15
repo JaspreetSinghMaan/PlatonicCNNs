@@ -27,7 +27,7 @@ class Shape(ABC):
         self.face_adjacencies = platonics_dict[self.num_faces]['3d_face_adjacencies']
         self.vertex_coords = platonics_dict[self.num_faces]['3d_vertex_coords'] #3d coordinates for each vertex
         self.face_frame_indx = platonics_dict[self.num_faces]['3d_face_frame_indx']
-        self.face_vertex_coords = platonics_dict[self.num_faces]['3d_face_vertex_coords'] #3d coordinates for vertex defining a face, can be composed using '3d_face_vertex_indx' and '3d_vertex_coords'
+        # self.face_vertex_coords = platonics_dict[self.num_faces]['3d_face_vertex_coords'] #3d coordinates for vertex defining a face, can be composed using '3d_face_vertex_indx' and '3d_vertex_coords'
         self.face_ignore_dim = platonics_dict[self.num_faces]['3d_face_ignore_dim'] # used in grids: axis to be ignored during per-face grid generation
         self.group_rotation = platonics_dict[self.num_faces]['group_rotation']
 
