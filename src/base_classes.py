@@ -133,6 +133,18 @@ class Signal(ABC):
     def __init__(self, spherical_data, grid, atlas):
         self.spherical_data = spherical_data
         self.grid = grid
+      
+        
+        # JGP TODO: How is this spherical data *actually* stored?
+        # Here we just need the **locations** since the correspondence only depends on the two grids
+        # and not on the values.  
+        # Assuming grid to be a tensor of #grid_pts x 3
+        # JGP TODO: we can probably move the projection code in here
+        from project_data import project_to_solid
+        
+        # self.solid_projection_corresp = project_to_solid(self.spherical_data.LOCATIONS??, self.grid)
+
+        # JGP: We probably don't want to store actual 'signals' like this, but rather as big tensors for vectorized computations
         self.platonic_data = self.project_to_solid()
 
 
@@ -142,12 +154,10 @@ class Signal(ABC):
         it's expected spherical data will be ((x,y,z),(r,g,b))
         :return: platonic data will be of the same format ((x,y,z),(r,g,b))
         '''
-        # this is done via projection of a the grid point coordinates to the sphere
-        # find the closest pixel value to this point #Warning comutational complexity here!!
-        # and then recording the coordinates and pixel value for each point in the grid
-        self.spherical_data
-        platonic_data = None
-        return platonic_data
+        # JGP TODO: How is this spherical data *actually* stored?
+        # Just need to index the values with whichever point in sphere corresponded to each grid point 
+        
+        # return self.spherical_data.VALUES??[self.solid_projection_corresp]
 
     def visualise_solid(self):
         '''
@@ -155,6 +165,7 @@ class Signal(ABC):
         use mayavi or matplotlib 3d
         :return:
         '''
+        # JGP: some initial code exists in platonics_utils and project_data
         pass
 
 
@@ -186,7 +197,6 @@ class Signal(ABC):
         rotating those, and mapping the transformed pixels back to the plane using an inverse chart.
         :return: 2d data array of form (height,width,(rbg))
         '''
-
 
 
 class gauge_CNN(nn.Module):

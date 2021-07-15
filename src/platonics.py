@@ -65,7 +65,7 @@ platonics_dict = {
             5: [1, 2, 3, 4]
         },
 
-        # JG: just keeping the tensor representation as one can always extract vertex coords by indexing this tensor
+        # JGP: just keeping the tensor representation as one can always extract vertex coords by indexing this tensor
         # The cube vertex ordering/labelling that was used in the dictionary version was preserved
         '3d_vertex_coords': torch.tensor([[-1, -1, -1],
                                           [1, -1, -1],
