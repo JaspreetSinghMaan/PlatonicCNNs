@@ -1,9 +1,13 @@
 from abc import ABC, abstractclassmethod
 import abc
+import numpy as np
+import matplotlib.pyplot as plt
 import torch
-from platonics import platonics_dict
-from utils import find_3d_rotation, find_3d_frame_transform
 import torch.nn as nn
+
+from utils import find_3d_rotation, find_3d_frame_transform
+from platonics import platonics_dict
+
 
 class Shape(ABC):
     '''
@@ -23,6 +27,7 @@ class Shape(ABC):
         self.vertex_coords = platonics_dict[self.num_faces]['3d_vertex_coords'] #3d coordinates for each vertex
         self.face_frame_indx = platonics_dict[self.num_faces]['3d_face_frame_indx']
         self.face_vertex_coords = platonics_dict[self.num_faces]['3d_face_vertex_coords'] #3d coordinates for vertex defining a face, can be composed using '3d_face_vertex_indx' and '3d_vertex_coords'
+        self.face_ignore_dim = platonics_dict[self.num_faces]['3d_face_ignore_dim'] # used in grids: axis to be ignored during per-face grid generation
         self.group_rotation = platonics_dict[self.num_faces]['group_rotation']
 
 
@@ -32,7 +37,13 @@ class Grid(ABC):
     '''
     def __init__(self, shape, resolution):
         self.shape = shape
-        self.resolution = resolution
+        
+        self.resolution = resolution  # sets how many times we recursively sub-divide, resolution = 1 --> no sub-division
+
+        # determine number of points in a 2D grid at given resolution
+        self.npoints = self.resolution_to_npoints(resolution)
+        # for Cube, total number of points in the square grid per face will be (npoints x npoints)
+        
         self.grid_dict = self.generate_grid()
 
     def generate_grid(self):
@@ -40,28 +51,108 @@ class Grid(ABC):
         returns a nested dict
         {face_index:
             {grid_point_coordinates: n x n x 3,
-             grid_point_meta information: n x n x 3}
+             grid_point_meta information: n x n x 1}
         }
         :return:
         '''
         grid_dict = {}
         for face in range(self.shape.num_faces):
-            grid_dict[face] = self.generate_face_grid()
+            grid_dict[face] = self.generate_face_grid(face)
         return grid_dict
 
-    def generate_face_grid(self):
+    def generate_face_grid(self, face):
         '''
         generates the grid for one face
         :return: 1 tensor of n x n x 3 for the coordinates and
-                1 tensor of n x n x 3 where (-1 = edge, 0 = interior, 1 = vertex)     ----potentially -2 for padding
-                1 tensor of n x n x 1 where 1 contains index for face
-                dict for vertex k: v:
-                dict for edge k: v:
+                1 tensor of n x n x 1 where 1 contains (-1 = edge, 0 = interior, 1 = vertex)     ----potentially -2 for padding
+                TODO 1 tensor of n x n x 1 where 1 contains index for face
+                TODO dict for vertex k: v:
+                TODO dict for edge k: v:
         '''
-        face_cords = None
-        face_meta_data = None
+        # get 3D coordinates of end points for the given face
+        end_coords = self.shape.face_vertex_coords[face]
+        # end_coords array must be of length 4.
+        assert len(end_coords) == 4
+        
+        # get dimension to be ignored during grid construction
+        ignore_dim = self.shape.face_ignore_dim[face]
+        assert ignore_dim in [0, 1, 2] # (x, y, z)
 
-        return face_cords, face_meta_data
+        # check that all end points in the ignore_dim dimension have the same value
+        assert end_coords[0][ignore_dim] == end_coords[1][ignore_dim] == end_coords[2][ignore_dim] == end_coords[3][ignore_dim]
+
+        # if resolution is 1, just return the end_coords list
+        if self.resolution <= 1:
+            return end_coords, np.ones(end_coords.shape)
+
+        ###########################################################################
+        # we will create the grid in 2D and then add back the ignored 3D dimension
+        ###########################################################################
+        
+        # create 2D grid
+        ###############################################################################################
+        # TODO currently, 2D grid generation only supports the Cube, which uses square grids
+        # square grids can be generated super efficiently via numpy's linspace + meshgrid functions
+        # linspace -- generates evenly spaces numbers on a 1D line between two end points
+        # meshgrid -- efficient function to create a 'grid' from the results of two linspaces 
+        #             (one for the x coords, one for the y coords)
+        # TODO we hardcode the end points of the linspaces for the x coords and y coords to be from 
+        # -1 to 1 at the moment; if we implement trinagular grids, we will have to determine end points
+        ################################################################################################
+        xx, yy = np.meshgrid( np.linspace(-1, 1, self.npoints), np.linspace(-1, 1, self.npoints) )
+        
+        # create metadata associated with each pixel on the grid
+        # (-1 = edge, 0 = interior, 1 = vertex)
+        meta = np.zeros(xx.shape)
+        # edges --> (x in {1, -1}) OR (y in {1, -1})
+        meta[xx == 1] = 1; meta[xx == -1] = 1
+        meta[yy == 1] = 1; meta[yy == -1] = 1
+        # vertices --> (x in {1, -1}) AND (y in {1, -1})
+        # TODO in this implementation, we can leverage the fact that linspace ensures that the first and final entry 
+        # in each row of the meshgrid are the vertices/end points
+        meta[(0,0,-1,-1), (0,-1,0,-1)] = -1
+        
+        # add back the ignored 3d dimensions
+        pad = np.ones(xx.shape) * end_coords[0][ignore_dim]
+        if ignore_dim == 0:
+            return np.stack((pad, xx, yy), axis=2), meta
+        elif ignore_dim == 1:
+            return np.stack((xx, pad, yy), axis=2), meta
+        elif ignore_dim == 2:
+            return np.stack((xx, yy, pad), axis=2), meta
+
+    def resolution_to_npoints(self, resolution):
+        """
+        Helper method to recursively calculate the number of points that a line can be divided into at a given recursion resolution.
+
+        Currently only supports Square grids/Cube as the shape.
+        """
+        if self.shape.num_faces == 6:
+            npoints = [2, 3, 5, 9, 17]  # beyond resolution 5, we can compute the number of points recursively
+
+            if resolution <= 5:
+                return npoints[resolution-1]
+            else:
+                n = npoints[-1]
+                for _ in range(5, resolution):
+                    n = n* 2 - 1
+                return n
+        else:
+            raise NotImplementedError
+
+    def viz_face_grid(self, face):
+        grid_point_coordinates = self.grid_dict[face][0]
+        ignore_dim = self.shape.face_ignore_dim[face]
+        assert ignore_dim in [0, 1, 2] # (x, y, z)
+
+        xx, yy, zz = np.moveaxis(grid_point_coordinates, source=2, destination=0)
+        if ignore_dim == 0:
+            plt.plot(yy, zz, marker='.', color='k', linestyle='none')
+        elif ignore_dim == 1:
+            plt.plot(xx, zz, marker='.', color='k', linestyle='none')
+        elif ignore_dim == 2:
+            plt.plot(xx, yy, marker='.', color='k', linestyle='none')
+        plt.show()
 
 
 class Atlas(ABC):
