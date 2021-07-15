@@ -128,7 +128,7 @@ class Chart(ABC):
 class Signal(ABC):
     '''
     Description - class to project the signal from data to the grid and then to the 2d charts and plot in 3d for visualisation
-    It's a torch.tensor object that is passed to the gauge_CNN in nthe forward pass
+    It's a torch.tensor object that is passed to the gauge_CNN in the forward pass
     '''
     def __init__(self, spherical_data, grid, atlas):
         self.spherical_data = spherical_data
@@ -174,7 +174,7 @@ class Signal(ABC):
         for each chart
         transforms 3D platonic data of form ((x,y,z),(r,g,b))
         to large 2d data arrays of form (height,width,(rbg)) ie a tensor with values but no explicit coordinates
-        :return: dict{chart number: 2d array}
+        :return: dict{chart number: 3d array of (3,H,W) }
         '''
         twoD_array_dict = {}
 
