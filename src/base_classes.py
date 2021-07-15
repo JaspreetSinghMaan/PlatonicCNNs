@@ -133,10 +133,10 @@ class Signal(ABC):
     def __init__(self, spherical_data, grid, atlas):
         self.spherical_data = spherical_data
         self.grid = grid
-        self.platonic_data = self.transform_to_platonic()
+        self.platonic_data = self.project_to_solid()
 
 
-    def transform_to_platonic(self):
+    def project_to_solid(self):
         '''
         transforms spherical data to platonic data
         it's expected spherical data will be ((x,y,z),(r,g,b))
@@ -149,7 +149,7 @@ class Signal(ABC):
         platonic_data = None
         return platonic_data
 
-    def visualise_platonic(self):
+    def visualise_solid(self):
         '''
         here we visualise the spherical data projected onto the platonic shape
         use mayavi or matplotlib 3d
