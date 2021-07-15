@@ -32,6 +32,18 @@ class Shape(ABC):
         self.group_rotation = platonics_dict[self.num_faces]['group_rotation']
 
 
+def is_in_list(my_tensor, tensor_list):
+    # Checks if there is any tensor in tensor_list numerically equal to my_tensor
+    return any(np.allclose(my_tensor, x_) for x_ in tensor_list)
+
+
+def find_in_list(my_tensor, tensor_list):
+    # Find the index of tensor in tensor_list numerically equal to my_tensor
+    for idx_counter, x_ in enumerate(tensor_list): 
+        if np.allclose(my_tensor, x_):
+            return idx_counter
+
+
 class Grid(ABC):
     '''
     an object that constructs and stores the 3d points and meta-information about a discretisation of a given platonic solid
@@ -45,21 +57,23 @@ class Grid(ABC):
         self.npoints = self.resolution_to_npoints(resolution)
         # for Cube, total number of points in the square grid per face will be (npoints x npoints)
         
-        self.grid_dict = self.generate_grid()
+        self.grid_dict, self.grid_point_coords, self.grid_point_meta = self.generate_grid()
 
     def generate_grid(self):
         '''
-        returns a tuple of arrays of form: (grid_point_coordinates, grid_point_meta) =
-
-        NOT # where N is num_faces * num_nodes in a face (this includes duplication)
+        returns a tuple of arrays of form: (grid_dict, grid_point_coordinates, grid_point_meta) =
 
         N is |G|
         (N x 3), grid_point_coordinates
+        (N x 1), grid_point_meta
 
-        for each face
-        (N_f,1) - node_list = indexing values of grid_point_coordinates
-        (N_f,1), grid_point_meta where type in [-1,0,1],
+        grid_dict:
+            for each face
+                (N_f,1) - node_list = indexing values of grid_point_coordinates
+                (N_f,3) - coordinates
+                (N_f,1) - meta information type in [-1,0,1]
 
+        TODO:
         Build hash function: key: (x/y/z) , values: index
 
         Padding from the +/- delta Chaitanya's idea
@@ -72,22 +86,49 @@ class Grid(ABC):
                                                 interior: [list of indexes of pixels on interior]
                                                 vertex: [list of indexes of pixels on vertexes]
                                                 edges: [list of indexes of pixels on edges not on vertexes]}}
-
-        :return:
         '''
         grid_dict = {}
+        grid_point_coords = []
+        grid_point_meta = []
+        idx_counter = 0  # keeps track of the global index count for grid_point_coords
+
         for face in range(self.shape.num_faces):
-            grid_dict[face] = self.generate_face_grid(face)
-        return grid_dict
+            # generate grid coordinates and meta tag for the face
+            face_coords, face_meta = self.generate_face_grid(face)
+            face_node_list = []  # list of indices into grid_point_coords
+
+            # loop over each coordinate and meta tag pair
+            for coords, meta in list(zip(face_coords, np.expand_dims(face_meta, 1))):
+                # if point/pixel is an interior pixel, we simply add it to grid_point_coords
+                if meta == 0:
+                    grid_point_coords.append(coords)
+                    grid_point_meta.append(meta)
+                    face_node_list.append(idx_counter)
+                    idx_counter += 1  # update index tracker
+
+                else:
+                    # if point/pixel is a corner/edge pixel, we only add it to grid_point_coords if it is not already inserted
+                    if not(is_in_list(coords, grid_point_coords)):
+                        grid_point_coords.append(coords)
+                        grid_point_meta.append(meta)
+                        face_node_list.append(idx_counter)
+                        idx_counter += 1  # update index tracker
+                    
+                    # if the point/pixel is already present in grid_point_coords, we will not insert it again to avoid duplicates, but we will keep track of its index
+                    else:
+                        # search for the exact index of the duplicate entry
+                        idx_of_duplicate = find_in_list(coords, grid_point_coords)
+                        face_node_list.append(idx_of_duplicate)
+
+            grid_dict[face] = (face_node_list, face_coords, face_meta)
+                
+        return grid_dict, np.stack(grid_point_coords), np.stack(grid_point_meta)
 
     def generate_face_grid(self, face):
         '''
         generates the grid for one face
-        :return: 1 tensor of n x n x 3 for the coordinates and
-                1 tensor of n x n x 1 where 1 contains (-1 = edge, 0 = interior, 1 = vertex)     ----potentially -2 for padding
-                TODO 1 tensor of n x n x 1 where 1 contains index for face
-                TODO dict for vertex k: v:
-                TODO dict for edge k: v:
+        :return: 1 tensor of (n x n) x 3 for the coordinates and
+                1 tensor of (n x n) x 1 where 1 contains (-1 = edge, 0 = interior, 1 = vertex)     ----potentially -2 for padding
         '''
         # get 3D coordinates of end points for the given face
         end_coords = self.shape.face_vertex_coords[face]
@@ -134,12 +175,19 @@ class Grid(ABC):
         
         # add back the ignored 3d dimensions
         pad = np.ones(xx.shape) * end_coords[0][ignore_dim]
+        # if ignore_dim == 0:
+        #     return np.stack((pad, xx, yy), axis=2), meta
+        # elif ignore_dim == 1:
+        #     return np.stack((xx, pad, yy), axis=2), meta
+        # elif ignore_dim == 2:
+        #     return np.stack((xx, yy, pad), axis=2), meta
+        # return flattened coordinates
         if ignore_dim == 0:
-            return np.stack((pad, xx, yy), axis=2), meta
+            return np.stack((pad.flatten(), xx.flatten(), yy.flatten()), axis=1), meta.flatten()
         elif ignore_dim == 1:
-            return np.stack((xx, pad, yy), axis=2), meta
+            return np.stack((xx.flatten(), pad.flatten(), yy.flatten()), axis=1), meta.flatten()
         elif ignore_dim == 2:
-            return np.stack((xx, yy, pad), axis=2), meta
+            return np.stack((xx.flatten(), yy.flatten(), pad.flatten()), axis=1), meta.flatten()
 
     def resolution_to_npoints(self, resolution):
         """
