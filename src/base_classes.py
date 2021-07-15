@@ -60,6 +60,10 @@ class Grid(ABC):
         (N_f,1) - node_list = indexing values of grid_point_coordinates
         (N_f,1), grid_point_meta where type in [-1,0,1],
 
+        Build hash function: key: (x/y/z) , values: index
+
+        Padding from the +/- delta Chaitanya's idea
+
         grid_pad list: index value of nodes that are in the padding to that face
         maybe list of face adjacencies - using (3d_face_adjacencies from platonics_dict
 
