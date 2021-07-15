@@ -103,6 +103,5 @@ def create_dummy_data(shape):
 
 if __name__ == "__main__":
     data = create_dummy_data('sphere')
-    # data = None
     # plot_grid(data)
     plot_surface(data)

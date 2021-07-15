@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from base_classes import Shape, Grid, Atlas, Signal
 from shape_Cube import Cube
 from shape_Icosahedron import Icosahedron
-from data import load_data
-from eqCNN import S2SGaugeCNN2D
+from data import load_data, create_dummy_data, plot_surface
+from eqCNN import CubeConv2D
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -60,7 +60,7 @@ def main(opt):
     atlas = Atlas(shape, grid)
 
     # load omni data
-    train_loader, test_loader, train_dataset, _ = load_data(f"../data/{opt['data_file_path']}", opt['batch_size'])
+    # train_loader, test_loader, train_dataset, _ = load_data(f"../data/{opt['data_file_path']}", opt['batch_size'])
     # todo this is still 2d data from s2conv paper
     # next try here https://github.com/ChiWeiHsiao/SphereNet-pytorch/blob/master/spherenet/dataset.py
 
@@ -70,16 +70,18 @@ def main(opt):
     #     plt.show()
 
     #todo inside the load_data need to create custom torch dataset from spherical mnist following below steps
-    spherical_data = train_dataset #this insn't yet spherical data
+    # spherical_data = train_dataset #this insn't yet spherical data
+    spherical_data = create_dummy_data('sphere')
+    plot_surface(spherical_data)
     signal = Signal(spherical_data, grid, atlas)
-    signal.transform_to_platonic()
-    signal.transform_to_atlas()
+    platonic_data = signal.project_to_solid()
+    signal.transform_to_atlas(platonic_data, atlas)
     chart_data = signal.atlas_to_tensor()
 
 
     # instantiate PCNN.py
     if opt['g_conv_type'] == 'S2S':
-        model = S2SGaugeCNN2D(opt)
+        model = S2SCubeConv2D(opt)
     elif opt['g_conv_type'] == 'S2R':
         pass
     elif opt['g_conv_type'] == 'R2R':
@@ -130,6 +132,14 @@ if __name__ == "__main__":
 
     #PCNN args
     parser.add_argument('--g_conv_type', type=str, default='S2S', help='S2S, S2R, R2R')
+    parser.add_argument('--c_in', type=int, default=6, help='int')
+    parser.add_argument('--c_out', type=int, default=4, help='int')
+    parser.add_argument('--r_in', type=int, default=1, help='int')
+    parser.add_argument('--r_out', type=int, default=1, help='int')
+    parser.add_argument('--kernel_size', type=int, default=3, help='int')
+    parser.add_argument('--stride', type=int, default=1, help='int')
+    parser.add_argument('--bias', action='store_true', help='')
+    parser.add_argument('--padding', type=int, default=0, help='int')
 
     args = parser.parse_args()
     opt = vars(args)

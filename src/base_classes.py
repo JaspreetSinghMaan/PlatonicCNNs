@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+from charts import chart, chart_inverse
 
 from utils import find_3d_rotation, find_3d_frame_transform
 from platonics import platonics_dict
@@ -48,11 +49,26 @@ class Grid(ABC):
 
     def generate_grid(self):
         '''
-        returns a nested dict
-        {face_index:
-            {grid_point_coordinates: n x n x 3,
-             grid_point_meta information: n x n x 1}
-        }
+        returns a tuple of arrays of form: (grid_point_coordinates, grid_point_meta) =
+
+        NOT # where N is num_faces * num_nodes in a face (this includes duplication)
+
+        N is |G|
+        (N x 3), grid_point_coordinates
+
+        for each face
+        (N_f,1) - node_list = indexing values of grid_point_coordinates
+        (N_f,1), grid_point_meta where type in [-1,0,1],
+
+        grid_pad list: index value of nodes that are in the padding to that face
+        maybe list of face adjacencies - using (3d_face_adjacencies from platonics_dict
+
+        Not this:
+        padding dict of list of indexes of format {face_num:
+                                                interior: [list of indexes of pixels on interior]
+                                                vertex: [list of indexes of pixels on vertexes]
+                                                edges: [list of indexes of pixels on edges not on vertexes]}}
+
         :return:
         '''
         grid_dict = {}
@@ -178,9 +194,9 @@ class Atlas(ABC):
         :return:
         '''
         charts_dict = {}
-        for chart_faces in self.atlas_dict:
-            for chart_num in chart_faces:
-                charts_dict[chart_num] = Chart(self.grid, chart_faces, self.atlas_dict)
+        for chart_num, chart_nums in enumerate(self.atlas_dict['chart_faces']):
+            for face_num in chart_nums:
+                charts_dict[chart_num] = Chart(self.grid.grid_dict[chart_num], chart_nums, self.atlas_dict)
         return charts_dict
 
 
@@ -200,15 +216,16 @@ class Chart(ABC):
         '''
         pass
 
-    def chart_bij(self):
+    def chart_bij(self, i,r,x): #chart(i,r,x)
         '''
         maps point on the cube to point on the plane
         '''
         # 3d cordinates + meta inforamtion
-        face_indx = 0
-        face_cords, face_meta_data = self.grid.grid_dict[face_indx]
+        # face_indx = 0
+        # face_cords, face_meta_data = self.grid.grid_dict[face_indx]
+        return chart(i,r,x)
 
-    def chart_bij_inv(self):
+    def chart_bij_inv(self): #chart_inverse(i,r,x)
         '''
         maps a point on the plane to corresponding point on the cube
         :return:
